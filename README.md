@@ -1,4 +1,4 @@
-# Linksquared
+# Linksquared iOS SDK
 
 [Linksquared](https://linksquared.io) is a powerful SDK that enables deep linking and universal linking within your iOS applications. This document serves as a guide to integrate and utilize Linksquared seamlessly within your project.
 
