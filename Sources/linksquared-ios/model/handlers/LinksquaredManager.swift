@@ -7,71 +7,74 @@
 import Foundation
 import UIKit
 
-/// A closure used for completion of boolean values.
+/// A closure used for completion handlers returning boolean values.
 typealias LinksquaredBoolCompletion = (_ value: Bool) -> Void
 
-/// A manager class responsible for integrating the Linksquared SDK.
+/// A manager class responsible for integrating the Linksquared SDK into the application.
 class LinksquaredManager {
+
+    // MARK: - Constants
+
+    private struct Constants {
+        static let deviceIDKey = "linkdsquare_device_id"
+    }
 
     // MARK: - Properties
 
-    /// The API service instance.
+    /// The API service instance responsible for communication with the Linksquared backend.
     private var apiService: APIService
 
-    /// The API key used for authentication.
+    /// The API key used for authenticating requests to the Linksquared backend.
     private let apiKey: String
 
-    /// The bundle ID of the app.
+    /// The bundle ID of the application.
     private let bundleID: String
 
-    /// A flag indicating whether the SDK is enabled.
+    /// A flag indicating whether the Linksquared SDK is enabled.
     private var enabled = true
 
-    /// The delegate for the LinksquaredManager.
+    /// A flag indicating whether the user is authenticated with the Linksquared backend.
+    private var authenticated = false
+
+    /// The URL to handle, used when the user is not authenticated yet.
+    private var urlToHandle: String?
+
+    /// The handler for various events related to Linksquared events.
+    private let eventsHandler: EventsHandler
+
+    /// The delegate for the LinksquaredManager, allowing customization and handling of Linksquared events.
     var delegate: LinksquaredDelegate?
 
-    // MARK: - Lifecycle
+    // MARK: - Initialization
 
-    /// Initializes the LinksquaredManager with the given API key and delegate.
+    /// Initializes the LinksquaredManager with the provided API key and delegate.
     ///
     /// - Parameters:
-    ///   - apiKey: The API key for authentication.
+    ///   - apiKey: The API key for authentication with the Linksquared backend.
     ///   - delegate: The delegate for the LinksquaredManager.
     init(apiKey: String, delegate: LinksquaredDelegate?) {
         self.apiKey = apiKey
         self.bundleID = AppDetailsHelper.getBundleID()
         self.delegate = delegate
         self.apiService = APIService(apiKey: apiKey, bundleID: self.bundleID)
+        self.eventsHandler = EventsHandler(apiService: self.apiService)
+
+        addObservers()
     }
 
     // MARK: - Public Methods
 
     /// Starts the LinksquaredManager.
     func start() {
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(applicationDidBecomeActive),
-                                               name: UIApplication.didBecomeActiveNotification,
-                                               object: nil)
+        // Implementation for starting the LinksquaredManager, if needed.
     }
 
-    /// Sets the SDK enabled state.
+    /// Enables or disables the Linksquared SDK.
     ///
-    /// - Parameter enabled: A flag indicating whether the SDK is enabled.
+    /// - Parameter enabled: A flag indicating whether the SDK should be enabled.
     func setEnabled(_ enabled: Bool) {
-        DebugLogger.shared.log(.info, "SDK setEnabled to: \(enabled)")
         self.enabled = enabled
-    }
-
-    /// Checks the configuration keys asynchronously.
-    ///
-    /// - Parameter completion: A closure to be called upon completion of the check.
-    func checkKeys(completion: @escaping LinksquaredBoolCompletion) {
-        if !hasURISchemesConfigured() || !hasAssociatedDomainsConfigured() {
-            DebugLogger.shared.log(.error, "URI schemes or Associated domains are not configured, deeplinking won't work!")
-            completion(false)
-        }
-
-        apiService.checkConfiguration(completion: completion)
+        DebugLogger.shared.log(.info, "SDK setEnabled to: \(enabled)")
     }
 
     /// Generates a link with the provided parameters.
@@ -80,13 +83,25 @@ class LinksquaredManager {
     ///   - title: The title of the link.
     ///   - subtitle: The subtitle of the link.
     ///   - imageURL: The URL of the image associated with the link.
-    ///   - data: Additional data to be included in the link.
+    ///   - data: Additional data to include in the link.
     ///   - completion: A closure to be called upon completion of link generation.
     func generateLink(title: String?,
                       subtitle: String?,
                       imageURL: String?,
                       data: [String: Any],
                       completion: @escaping LinksquaredURLClosure) {
+        guard enabled else {
+            DebugLogger.shared.log(.error, "The SDK is not enabled. Links cannot be generated.")
+            completion(nil)
+            return
+        }
+
+        guard authenticated else {
+            DebugLogger.shared.log(.info, "SDK is not ready for usage yet.")
+            completion(nil)
+            return
+        }
+
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: data, options: .prettyPrinted)
             if let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -94,9 +109,36 @@ class LinksquaredManager {
                 return
             }
         } catch {
-            print("Can not convert data to JSON")
+            DebugLogger.shared.log(.error, "Failed to convert data to JSON: \(error.localizedDescription)")
         }
+
         completion(nil)
+    }
+
+    /// Authenticates the user with the Linksquared backend.
+    ///
+    /// - Parameter completion: A closure called upon completion of authentication, providing a boolean value indicating success.
+    func authenticate(completion: @escaping LinksquaredBoolCompletion) {
+        guard hasURISchemesConfigured() else {
+            DebugLogger.shared.log(.error, "URI schemes or Associated domains are not configured. Deeplinking won't work!")
+            completion(false)
+            return
+        }
+
+        apiService.authenticate(appDetails: AppDetailsHelper.getAppDetails()) { identifier in
+            if let identifier = identifier {
+                Context.linksquaredID = identifier
+                self.authenticated = true
+
+                self.handleURLIfNeeded()
+                self.getDataForDevice()
+
+                completion(true)
+            } else {
+                self.authenticated = false
+                completion(false)
+            }
+        }
     }
 
     // MARK: - App Lifecycle
@@ -106,11 +148,32 @@ class LinksquaredManager {
         getDataForDevice()
     }
 
+    @objc func applicationWillResignActive() {
+        // Implementation for handling application resigning active state, if needed.
+    }
+
     // MARK: - Private Methods
 
-    /// Retrieves data for the device from the API service.
+    private func handleURLIfNeeded() {
+        if let urlToHandle = urlToHandle {
+            handleURL(url: urlToHandle)
+        }
+    }
+
+    private func addObservers() {
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(applicationDidBecomeActive),
+                                               name: UIApplication.didBecomeActiveNotification,
+                                               object: nil)
+
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(applicationWillResignActive),
+                                               name: UIApplication.willResignActiveNotification,
+                                               object: nil)
+    }
+
     private func getDataForDevice() {
-        if !enabled {
+        guard enabled, authenticated else {
             return
         }
         apiService.payloadFor(appDetails: AppDetailsHelper.getAppDetails()) { payload in
@@ -118,21 +181,22 @@ class LinksquaredManager {
         }
     }
 
-    /// Handles a URL received by the application.
-    ///
-    /// - Parameter url: The URL to handle.
     private func handleURL(url: String) {
-        if !enabled {
+        guard enabled else {
             return
         }
+
+        if !authenticated {
+            urlToHandle = url
+            return
+        }
+
+        eventsHandler.setLink(link: url)
         apiService.payloadFor(appDetails: AppDetailsHelper.getAppDetails(), url: url) { payload in
             self.handleReceivedAction(payload: payload)
         }
     }
 
-    /// Handles a received action payload.
-    ///
-    /// - Parameter payload: The payload to handle.
     private func handleReceivedAction(payload: [String: Any]?) {
         if let payload = payload {
             delegate?.linksquaredReceivedPayloadFromDeeplink(payload: payload)
@@ -144,9 +208,6 @@ class LinksquaredManager {
 
 extension LinksquaredManager {
 
-    /// Handles opening URLs from the scene delegate.
-    ///
-    /// - Parameter URLContexts: The set of URL contexts.
     @available(iOS 13.0, *)
     func handleSceneDelegate(openURLContexts URLContexts: Set<UIOpenURLContext>) {
         if let url = URLContexts.first?.url {
@@ -154,18 +215,12 @@ extension LinksquaredManager {
         }
     }
 
-    /// Handles continuing user activities from the scene delegate.
-    ///
-    /// - Parameter userActivity: The user activity to continue.
     func handleSceneDelegate(continue userActivity: NSUserActivity) {
         if let url = userActivity.webpageURL {
             handleURL(url: url.absoluteString)
         }
     }
 
-    /// Handles scene delegate options.
-    ///
-    /// - Parameter connectionOptions: The connection options.
     @available(iOS 13.0, *)
     func handleSceneDelegate(options connectionOptions: UIScene.ConnectionOptions) {
         if let url = connectionOptions.urlContexts.first?.url {
@@ -181,15 +236,8 @@ extension LinksquaredManager {
 
 extension LinksquaredManager {
 
-    /// Handles continuing user activities from the app delegate.
-    ///
-    /// - Parameters:
-    ///   - userActivity: The user activity to continue.
-    ///   - restorationHandler: The restoration handler closure.
-    /// - Returns: A Boolean value indicating whether the activity was handled.
     func handleAppDelegate(continue userActivity: NSUserActivity,
                            restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-
         if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
            let url = userActivity.webpageURL {
             handleURL(url: url.absoluteString)
@@ -199,33 +247,23 @@ extension LinksquaredManager {
         return false
     }
 
-    /// Handles opening URLs from the app delegate.
-    ///
-    /// - Parameters:
-    ///   - url: The URL to open.
-    ///   - options: The URL handling options.
-    /// - Returns: A Boolean value indicating whether the URL was handled.
     func handleAppDelegate(open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
         handleURL(url: url.absoluteString)
         return true
     }
 }
 
+// MARK: - URI Schemes Configuration
+
 extension LinksquaredManager {
 
-    // Check if URI schemes are configured in Info.plist
+    /// Checks if URI schemes are configured in the Info.plist.
+    ///
+    /// - Returns: A Boolean value indicating whether URI schemes are configured.
     func hasURISchemesConfigured() -> Bool {
         guard let urlTypes = Bundle.main.infoDictionary?["CFBundleURLTypes"] as? [[String: Any]] else {
             return false
         }
         return !urlTypes.isEmpty
-    }
-
-    // Check if associated domains are configured in Info.plist
-    func hasAssociatedDomainsConfigured() -> Bool {
-        guard let associatedDomains = Bundle.main.infoDictionary?["com.apple.developer.associated-domains"] as? [String] else {
-            return false
-        }
-        return !associatedDomains.isEmpty
     }
 }

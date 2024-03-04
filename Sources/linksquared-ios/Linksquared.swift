@@ -42,9 +42,7 @@ public class Linksquared {
         self.APIKey = APIKey
         self.manager = LinksquaredManager(apiKey: APIKey, delegate: delegate)
 
-        checkConfiguration()
-
-        manager.start()
+        self.checkConfiguration()
     }
 
     /// Disables the Linksquared SDK.
@@ -86,9 +84,11 @@ public class Linksquared {
             fatalError("API Key is invalid. Make sure you've used the right value from the Web interface.")
         }
 
-        self.manager.checkKeys{ success in
+        self.manager.authenticate { success in
             if !success {
                 DebugLogger.shared.log(.error, "Can not initialize the SDK, the Bundle Key combo is invalid")
+            } else {
+                self.manager.start()
             }
         }
     }
