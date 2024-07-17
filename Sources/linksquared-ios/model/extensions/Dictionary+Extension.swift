@@ -22,4 +22,21 @@ extension Dictionary {
 
         return nil
     }
+
+    /// Converts the dictionary to a string representation.
+    ///
+    /// - Returns: A string representation of the dictionary.
+    func toString() -> String {
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: self, options: .prettyPrinted)
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                return jsonString
+            } else {
+                return ""
+            }
+        } catch {
+            print("Error converting dictionary to string: \(error)")
+            return ""
+        }
+    }
 }
