@@ -343,7 +343,7 @@ extension LinksquaredManager {
     }
 
     @available(iOS 13.0, *)
-    func handleSceneDelegate(options connectionOptions: UIScene.ConnectionOptions) {
+    func handleSceneDelegate(connectionOptions: UIScene.ConnectionOptions) {
         if let url = connectionOptions.urlContexts.first?.url {
             handleURL(url: url.absoluteString)
         }
