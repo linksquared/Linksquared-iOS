@@ -40,12 +40,16 @@ class DebugLogger {
     ///   - function: The function in which the log message is located.
     ///   - line: The line number at which the log message is located.
     public func log(_ level: LogLevel, _ message: String, file: String = #file, function: String = #function, line: Int = #line) {
-        guard level.rawValue == logLevel.rawValue else {
+        if logLevel == .error && level == .info {
             return
         }
 
         let fileName = URL(fileURLWithPath: file).lastPathComponent
-        let logMessage = "LINKSQUARED [\(level.rawValue)] \(fileName) -> \(function) [Line \(line)]: \(message)"
+        var logMessage = "LINKSQUARED [\(level.rawValue)] \(fileName) -> \(function) [Line \(line)]: \(message)"
+        if level == .error {
+            logMessage = "\n\n\n" + logMessage + "\n\n\n"
+        }
+
         print(logMessage)
     }
 }

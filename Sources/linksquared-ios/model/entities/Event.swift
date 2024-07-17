@@ -13,6 +13,7 @@ enum EventType: String, Codable {
     case install = "install"
     case reinstall = "reinstall"
     case timeSpent = "time_spent"
+    case reactivation = "reactivation"
 }
 
 /// A class representing an event with type, creation date, link, and engagement time.

@@ -22,6 +22,17 @@ extension Date {
         return Date(timeIntervalSince1970: TimeInterval(seconds))
     }
 
+    /// Returns the number of days between the instance date and the provided date.
+    /// - Parameter date: The date to compare with.
+    /// - Returns: The difference in days between the two dates.
+    func daysBetween(_ date: Date) -> Int? {
+        let calendar = Calendar.current
+        let startOfSelf = calendar.startOfDay(for: self)
+        let startOfOtherDate = calendar.startOfDay(for: date)
+        let components = calendar.dateComponents([.day], from: startOfSelf, to: startOfOtherDate)
+        return components.day
+    }
+
     /// Parses a string representing a date in the format "YYYY-MM-dd" and returns the corresponding `Date` object.
     ///
     /// - Parameter string: The string representing the date.

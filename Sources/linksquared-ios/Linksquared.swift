@@ -17,11 +17,22 @@ public class Linksquared {
     /// The delegate to receive callbacks from the SDK.
     public static var delegate: LinksquaredDelegate? {
         set {
-            manager.delegate = newValue
+            manager?.delegate = newValue
         }
 
         get {
-            return manager.delegate
+            return manager?.delegate
+        }
+    }
+
+    public static var useTestEnvironment: Bool = false {
+        didSet {
+            manager?.useTestEnvironment = useTestEnvironment
+            checkConfiguration()
+
+            if useTestEnvironment {
+                DebugLogger.shared.log(.info, "Test environment enabled.")
+            }
         }
     }
 
@@ -29,7 +40,9 @@ public class Linksquared {
     private static var APIKey: String!
 
     /// The manager handling Linksquared functionality.
-    private static var manager: LinksquaredManager!
+    private static var manager: LinksquaredManager?
+
+    private static var isConfigured: Bool = false
 
     // MARK: Public methods
 
@@ -49,7 +62,7 @@ public class Linksquared {
     /// - Parameter enabled: The log level to set.
     /// Default is true.
     public static func setSDK(enabled: Bool) {
-        manager.setEnabled(enabled)
+        manager?.setEnabled(enabled)
     }
 
     /// Sets the debug level for the SDK log messages.
@@ -59,6 +72,24 @@ public class Linksquared {
         DebugLogger.shared.logLevel = level
     }
 
+    public static var userIdentifier: String? {
+        set {
+            manager?.identifier = newValue
+        }
+        get {
+            manager?.identifier
+        }
+    }
+
+    public static var userAttributes: [String: Any]? {
+        set {
+            manager?.attributes = newValue
+        }
+        get {
+            manager?.attributes
+        }
+    }
+
     /// Generates a link.
     ///
     /// - Parameters:
@@ -66,14 +97,29 @@ public class Linksquared {
     ///   - subtitle: The subtitle of the link.
     ///   - imageURL: The URL of the image associated with the link.
     ///   - data: Additional data for the link.
+    ///   - tags: Tags for the link.
     ///   - completion: A closure to be executed after generating the link.
     public static func generateLink(title: String?,
                                     subtitle: String?,
                                     imageURL: String?,
-                                    data: [String: Any],
+                                    data: [String: Any]?,
+                                    tags: [String]?,
                                     completion: @escaping LinksquaredURLClosure) {
+        manager?.generateLink(title: title, subtitle: subtitle, imageURL: imageURL, data: data, tags: tags, completion: completion)
+    }
 
-        manager.generateLink(title: title, subtitle: subtitle, imageURL: imageURL, data: data, completion: completion)
+    /// Retrieves the last received payload data.
+    ///
+    /// - Parameter completion: A closure that takes a dictionary representing the payload data as its parameter.
+    public static func lastReceivedPayload(completion: @escaping LinksquaredPayloadClosure) {
+        manager?.getLastPayload(completion: completion)
+    }
+
+    /// Retrieves all payloads received since startup.
+    ///
+    /// - Parameter completion: A closure that takes an array of dictionaries, each representing a payload data, as its parameter.
+    public static func allReceivedPayloadsSinceStartup(completion: @escaping LinksquaredPayloadsClosure) {
+        manager?.getAllPayloadsSinceStartup(completion: completion)
     }
 
     // MARK: Private methods
@@ -84,11 +130,11 @@ public class Linksquared {
             fatalError("API Key is invalid. Make sure you've used the right value from the Web interface.")
         }
 
-        self.manager.authenticate { success in
+        manager?.authenticate { success in
             if !success {
                 DebugLogger.shared.log(.error, "Can not initialize the SDK, the Bundle Key combo is invalid")
             } else {
-                self.manager.start()
+                self.manager?.start()
             }
         }
     }
@@ -103,7 +149,7 @@ extension Linksquared {
     @available(iOS 13.0, *)
     public static func handleSceneDelegate(openURLContexts URLContexts: Set<UIOpenURLContext>) {
         // Handle URI
-        manager.handleSceneDelegate(openURLContexts: URLContexts)
+        manager?.handleSceneDelegate(openURLContexts: URLContexts)
     }
 
     /// Handles continue user activity for scene delegate.
@@ -111,7 +157,7 @@ extension Linksquared {
     /// - Parameter userActivity: The user activity.
     public static func handleSceneDelegate(continue userActivity: NSUserActivity) {
         // Handle Universal Link
-        manager.handleSceneDelegate(continue: userActivity)
+        manager?.handleSceneDelegate(continue: userActivity)
     }
 
     /// Handles options for scene delegate.
@@ -120,7 +166,7 @@ extension Linksquared {
     @available(iOS 13.0, *)
     public static func handleSceneDelegate(options connectionOptions: UIScene.ConnectionOptions) {
         // Handle both URI and Universal links
-        manager.handleSceneDelegate(options: connectionOptions)
+        manager?.handleSceneDelegate(options: connectionOptions)
     }
 }
 
@@ -138,7 +184,7 @@ extension Linksquared {
     public static func handleAppDelegate(continue userActivity: NSUserActivity,
                                          restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         // Handle universal link
-        return manager.handleAppDelegate(continue: userActivity, restorationHandler: restorationHandler)
+        return manager?.handleAppDelegate(continue: userActivity, restorationHandler: restorationHandler) ?? false
     }
 
     /// Handles URI opening.
@@ -150,6 +196,6 @@ extension Linksquared {
 
     public static func handleAppDelegate(open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
         // Handle URI
-        return manager.handleAppDelegate(open: url, options: options)
+        return manager?.handleAppDelegate(open: url, options: options) ?? false
     }
 }

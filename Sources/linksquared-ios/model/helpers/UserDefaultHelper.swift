@@ -9,6 +9,7 @@ import Foundation
 enum UserDefaultsKeys: String {
     case linksquaredNumberOfOpens
     case linksquaredResignTimestamp
+    case linksquaredLastStartTimestamp
 }
 
 /// A helper class for storing, retrieving, and removing values from UserDefaults.

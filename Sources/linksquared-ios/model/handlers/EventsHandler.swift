@@ -16,6 +16,7 @@ class EventsHandler {
     // Constants used internally
     private struct Constants {
         static let firstBatchEventsSendingLeeway: Double = 30.0 // Seconds
+        static let numberOfDaysForReactivation: Int = 7
     }
 
     // MARK: Properties
@@ -79,6 +80,7 @@ class EventsHandler {
 
     private func addInitialEvents() {
         addInstallIfNeeded()
+        addReactivationIfNeeded()
 
         // Increment the number of opens in UserDefaults
         UserDefaultsHelper.set(value: UserDefaultsHelper.getInt(key: .linksquaredNumberOfOpens) + 1, key: .linksquaredNumberOfOpens)
@@ -93,6 +95,21 @@ class EventsHandler {
             let event = linksquaredID != nil ? Event(type: .reinstall, createdAt: Date()) : Event(type: .install, createdAt: Date())
             storage.addEvent(event: event)
         }
+    }
+
+    private func addReactivationIfNeeded() {
+        let lastResignTimestamp = UserDefaultsHelper.getInt(key: .linksquaredLastStartTimestamp)
+        if lastResignTimestamp != 0 {
+            let lastResignDate = Date.fromSeconds(lastResignTimestamp)
+
+            if let days = lastResignDate.daysBetween(Date.now), days >= Constants.numberOfDaysForReactivation {
+
+                let event = Event(type: .reactivation, createdAt: Date.now)
+                storage.addEvent(event: event)
+            }
+        }
+
+        UserDefaultsHelper.set(value: Date.now.toSeconds(), key: .linksquaredLastStartTimestamp)
     }
 
     private func addOpenEvent() {

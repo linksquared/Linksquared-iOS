@@ -22,4 +22,7 @@ struct Context {
             }
         }
     }
+
+    static var identifier: String?
+    static var attributes: [String: Any]?
 }
