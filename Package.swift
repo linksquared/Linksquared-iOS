@@ -4,24 +4,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "linksquared-ios",
+    name: "Linksquared",
     platforms: [
            .iOS(.v12)
        ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "linksquared-ios",
-            targets: ["linksquared-ios"]),
+            name: "Linksquared",
+            targets: ["Linksquared"]),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "linksquared-ios"),
+            name: "Linksquared"),
         .testTarget(
-            name: "linksquared-iosTests",
-            dependencies: ["linksquared-ios"]),
+            name: "Linksquared-iosTests",
+            dependencies: ["Linksquared"]),
     ],
     swiftLanguageVersions: [.v5]
 )
