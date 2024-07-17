@@ -102,14 +102,14 @@ class EventsHandler {
         if lastResignTimestamp != 0 {
             let lastResignDate = Date.fromSeconds(lastResignTimestamp)
 
-            if let days = lastResignDate.daysBetween(Date.now), days >= Constants.numberOfDaysForReactivation {
+            if let days = lastResignDate.daysBetween(Date()), days >= Constants.numberOfDaysForReactivation {
 
-                let event = Event(type: .reactivation, createdAt: Date.now)
+                let event = Event(type: .reactivation, createdAt: Date())
                 storage.addEvent(event: event)
             }
         }
 
-        UserDefaultsHelper.set(value: Date.now.toSeconds(), key: .linksquaredLastStartTimestamp)
+        UserDefaultsHelper.set(value: Date().toSeconds(), key: .linksquaredLastStartTimestamp)
     }
 
     private func addOpenEvent() {
