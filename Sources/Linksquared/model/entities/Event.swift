@@ -8,8 +8,9 @@ import Foundation
 
 /// An enumeration representing different types of events.
 enum EventType: String, Codable {
+    case appOpen = "app_open"
     case view = "view"
-    case appOpen = "open"
+    case open = "open"
     case install = "install"
     case reinstall = "reinstall"
     case timeSpent = "time_spent"

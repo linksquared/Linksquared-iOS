@@ -23,10 +23,12 @@ class EventsHandler {
 
     private let service: APIService
     private let storage = EventsStorage()
+    private var linkForFutureActions: String?
 
     // MARK: Initialization
 
     /// Initializes the `EventsHandler` with the provided API service.
+    /// - Parameter apiService: The service used for API calls
     init(apiService: APIService) {
         service = apiService
 
@@ -39,14 +41,24 @@ class EventsHandler {
     // MARK: Public Methods
 
     /// Logs an event and sends it to the backend.
+    /// - Parameter event: The event to log
     func log(event: Event) {
-        storage.addEvent(event: event)
+        let newEvent = event
+        if newEvent.link == nil {
+            newEvent.link = linkForFutureActions
+        }
+
+        storage.addEvent(event: newEvent)
         sendNormalEventsToBackend()
     }
 
-    /// Sets the link associated with events.
-    func setLink(link: String) {
-        addLinkToEvents(link: link)
+    /// Sets the link for future actions to associate with new events.
+    /// - Parameter link: The link to set
+    func setLinkToNewFutureActions(link: String?) {
+        linkForFutureActions = link
+        if let link {
+            addLinkToEvents(link: link)
+        }
     }
 
     // MARK: Notifications
@@ -72,12 +84,14 @@ class EventsHandler {
 
     // MARK: Private Methods
 
+    /// Dispatches initial events after a delay.
     private func initialDispatchEvents() {
         DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + Constants.firstBatchEventsSendingLeeway, execute: { [weak self] in
             self?.sendNormalEventsToBackend()
         })
     }
 
+    /// Adds initial events such as install or reactivation events.
     private func addInitialEvents() {
         addInstallIfNeeded()
         addReactivationIfNeeded()
@@ -86,6 +100,7 @@ class EventsHandler {
         UserDefaultsHelper.set(value: UserDefaultsHelper.getInt(key: .linksquaredNumberOfOpens) + 1, key: .linksquaredNumberOfOpens)
     }
 
+    /// Logs an install event if it's the first app launch.
     private func addInstallIfNeeded() {
         let numberOfOpens = UserDefaultsHelper.getInt(key: .linksquaredNumberOfOpens)
         let linksquaredID = KeychainHelper.getValue(forKey: .linksquaredID)
@@ -97,6 +112,7 @@ class EventsHandler {
         }
     }
 
+    /// Logs a reactivation event if the app was inactive for the specified number of days.
     private func addReactivationIfNeeded() {
         let lastResignTimestamp = UserDefaultsHelper.getInt(key: .linksquaredLastStartTimestamp)
         if lastResignTimestamp != 0 {
@@ -112,12 +128,14 @@ class EventsHandler {
         UserDefaultsHelper.set(value: Date().toSeconds(), key: .linksquaredLastStartTimestamp)
     }
 
+    /// Logs an app open event.
     private func addOpenEvent() {
         // Log an app open event
         let event = Event(type: .appOpen, createdAt: Date())
         storage.addEvent(event: event)
     }
 
+    /// Sets up observers for application lifecycle notifications.
     private func addObservers() {
         // Add observers for application lifecycle notifications
         NotificationCenter.default.addObserver(self,
@@ -131,6 +149,8 @@ class EventsHandler {
                                                object: nil)
     }
 
+    /// Handles old events that occurred before the app resigned active.
+    /// - Parameter timestamp: The timestamp of when the app last resigned active
     private func handleOldEvents(timestamp: Date) {
         // Handle events that occurred before the app resigned active
         let event = Event(type: .timeSpent, createdAt: Date())
@@ -152,11 +172,15 @@ class EventsHandler {
         }
     }
 
+    /// Adds a link to all stored events that do not already have one.
+    /// - Parameter link: The link to add
     private func addLinkToEvents(link: String) {
         // Add a link to the stored events
         changeStorageEvents { oldEvent in
             let newEvent = oldEvent
-            newEvent.link = link
+            if newEvent.link == nil {
+                newEvent.link = link
+            }
             return newEvent
         } completion: {
             // Send the updated events to the backend
@@ -164,6 +188,9 @@ class EventsHandler {
         }
     }
 
+    /// Changes stored events based on a closure and performs a completion handler.
+    /// - Parameter eventHandling: A closure that defines how to modify each event
+    /// - Parameter completion: A completion handler to call after processing events
     private func changeStorageEvents(eventHandling: @escaping LinksquaredChangeEventClosure, completion: LinksquaredEmptyClosure?) {
         // Change stored events based on a closure and perform completion
         storage.getEvents { events in
@@ -182,6 +209,7 @@ class EventsHandler {
         }
     }
 
+    /// Sends normal events (non-time-spent) to the backend.
     private func sendNormalEventsToBackend() {
         // Send normal events to the backend
         storage.getEvents { events in
@@ -210,6 +238,7 @@ class EventsHandler {
         }
     }
 
+    /// Sends time-spent events to the backend.
     private func sendTimeSpentEventsToBackend() {
         // Send time-spent events to the backend
         storage.getEvents { events in

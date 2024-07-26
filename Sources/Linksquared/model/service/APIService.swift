@@ -12,6 +12,8 @@ public typealias LinksquaredURLClosure = (_ url: URL?) -> Void
 /// A typealias for a closure returning a dictionary.
 public typealias LinksquaredPayloadClosure = (_ dictionary: [String: Any]?) -> Void
 
+public typealias LinksquaredDeviceDataClosureClosure = (_ dictionary: [String: Any]?, _ link: String?) -> Void
+
 /// A typealias for a closure returning a dictionary.
 public typealias LinksquaredPayloadsClosure = (_ array: [[String: Any]]?) -> Void
 
@@ -80,8 +82,9 @@ class APIService: BaseService {
     ///   - appDetails: Details of the app.
     ///   - url: The URL to retrieve payload for.
     ///   - completion: A closure returning the payload as a dictionary.
-    func payloadFor(appDetails: AppDetails, url: String, completion: @escaping LinksquaredPayloadClosure) {
-        var request = urlRequestWithAuthHeaders(path: Constants.URLs.dataForDeviceAndURL)
+    func payloadFor(appDetails: AppDetails, url: String, completion: @escaping LinksquaredDeviceDataClosureClosure) {
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.dataForDeviceAndURL)
         request.httpMethod = "POST"
 
         var body = appDetails.toBackend()
@@ -93,12 +96,14 @@ class APIService: BaseService {
         makeRequest(URLRequest: request) { success, json in
             guard let json = json, success, let data = json["data"] as? [String: Any] else {
                 DebugLogger.shared.log(.info, "Fetching payload for device and URL - No payload")
-                completion(nil)
+                completion(nil, nil)
                 return
             }
 
+            let link = json["link"] as? String
+
             DebugLogger.shared.log(.info, "Fetching payload for device and URL - Received payload")
-            completion(data)
+            completion(data, link)
         }
     }
 
@@ -107,8 +112,9 @@ class APIService: BaseService {
     /// - Parameters:
     ///   - appDetails: Details of the app.
     ///   - completion: A closure returning the payload as a dictionary.
-    func payloadFor(appDetails: AppDetails, completion: @escaping LinksquaredPayloadClosure) {
-        var request = urlRequestWithAuthHeaders(path: Constants.URLs.dataForDevice)
+    func payloadFor(appDetails: AppDetails, completion: @escaping LinksquaredDeviceDataClosureClosure) {
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.dataForDevice)
         request.httpMethod = "POST"
         request.httpBody = appDetails.toBackend().dictToData()
 
@@ -116,12 +122,14 @@ class APIService: BaseService {
         makeRequest(URLRequest: request) { success, json in
             guard let json = json, success, let data = json["data"] as? [String: Any] else {
                 DebugLogger.shared.log(.info, "Fetching payload for device - No payload")
-                completion(nil)
+                completion(nil, nil)
                 return
             }
 
+            let link = json["link"] as? String
+
             DebugLogger.shared.log(.info, "Fetching payload for device - Received payload")
-            completion(data)
+            completion(data, link)
         }
     }
 
@@ -164,14 +172,15 @@ class APIService: BaseService {
     ///   - appDetails: Details of the app.
     ///   - completion: A closure returning the Linksquared ID as a string.
     func authenticate(appDetails: AppDetails, completion: @escaping LinksquaredAuthenticationClosure) {
-        var request = urlRequestWithAuthHeaders(path: Constants.URLs.authenticate)
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.authenticate)
         request.httpMethod = "POST"
         request.httpBody = appDetails.toBackend().dictToData()
 
         DebugLogger.shared.log(.info, "Authenticate")
         makeRequest(URLRequest: request) { success, json in
             guard let json = json, success,
-                    let id = json["linksquared_id"] as? String,
+                    let id = json["linksquared"] as? String,
                     let uriScheme = json["uri_scheme"] as? String else {
 
                 DebugLogger.shared.log(.info, "Authenticate - No payload")
@@ -245,6 +254,9 @@ class APIService: BaseService {
         request.setValue(bundleID, forHTTPHeaderField: Constants.Headers.identifier)
         request.setValue("ios", forHTTPHeaderField: Constants.Headers.platform)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let userAgent = Context.userAgent {
+            request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        }
 
         if let id = Context.linksquaredID {
             request.setValue(id, forHTTPHeaderField: Constants.Headers.linksquaredID)

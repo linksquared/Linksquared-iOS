@@ -23,6 +23,12 @@ struct Context {
         }
     }
 
+    /// The identifier for the current context, used for tracking and identification.
     static var identifier: String?
+
+    /// Attributes associated with the current context, used for providing additional context.
     static var attributes: [String: Any]?
+
+    /// The user agent string, used for identifying the client environment.
+    static var userAgent: String?
 }

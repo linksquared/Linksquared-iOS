@@ -166,7 +166,7 @@ extension Linksquared {
     @available(iOS 13.0, *)
     public static func handleSceneDelegate(options connectionOptions: UIScene.ConnectionOptions) {
         // Handle both URI and Universal links
-        manager?.handleSceneDelegate(options: connectionOptions)
+        manager?.handleSceneDelegate(connectionOptions: connectionOptions)
     }
 }
 

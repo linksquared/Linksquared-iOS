@@ -8,6 +8,8 @@ import Foundation
 import UIKit
 import WebKit
 
+import WebKit
+
 class AppDetailsHelper {
 
     private struct Constants {
@@ -47,6 +49,10 @@ class AppDetailsHelper {
     ///
     /// - Returns: The user agent string.
     static func getUserAgent() -> String {
+        if let userAgent = Context.userAgent {
+            return userAgent
+        }
+
         if let userAgent = WKWebView().value(forKey: "userAgent") as? String {
             return userAgent
         }

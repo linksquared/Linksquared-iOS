@@ -50,9 +50,12 @@ class LinksquaredManager {
 
     /// Closures to be called for the last payload
     private var lastPayloadClosureArray = [LinksquaredPayloadClosure]()
-    
+
     /// Closures to be called for the payloads
     private var payloadsClosureArray = [LinksquaredPayloadsClosure]()
+
+    /// Stores if attributes needs to be updated after auth
+    private var shouldUpdateAttributes = false
 
     /// The delegate for the LinksquaredManager, allowing customization and handling of Linksquared events.
     var delegate: LinksquaredDelegate?
@@ -64,8 +67,7 @@ class LinksquaredManager {
         }
     }
 
-    var shouldUpdateAttributes = false
-
+    /// The identifier for the current user, normally a userID. This will be visible in the linksquared dashboard.
     var identifier: String? {
         set {
             Context.identifier = newValue
@@ -76,6 +78,7 @@ class LinksquaredManager {
         }
     }
 
+    /// The attributes for the current user. This will be visible in the linksquared dashboard.
     var attributes: [String: Any]? {
         set {
             Context.attributes = newValue
@@ -105,17 +108,17 @@ class LinksquaredManager {
 
     // MARK: - Public Methods
 
-    /// Starts the LinksquaredManager.
-    func start() {
-        // Implementation for starting the LinksquaredManager, if needed.
-    }
-
     /// Enables or disables the Linksquared SDK.
     ///
     /// - Parameter enabled: A flag indicating whether the SDK should be enabled.
     func setEnabled(_ enabled: Bool) {
         self.enabled = enabled
         DebugLogger.shared.log(.info, "SDK setEnabled to: \(enabled)")
+    }
+
+    /// Starts the LinksquaredManager.
+    func start() {
+        // Implementation for starting the LinksquaredManager, if needed.
     }
 
     /// Generates a link with the provided parameters.
@@ -199,30 +202,34 @@ class LinksquaredManager {
             return
         }
 
-        apiService.authenticate(appDetails: AppDetailsHelper.getAppDetails()) { success, linksquaredID, uriScheme, identifier, attributes in
-            guard let linksquaredID = linksquaredID, let uriScheme = uriScheme, success else {
-                self.authenticated = false
-                completion(false)
+        // Fetch the user agent
+        handleUserAgent {
+            // Handle app details
+            self.apiService.authenticate(appDetails: AppDetailsHelper.getAppDetails()) { success, linksquaredID, uriScheme, identifier, attributes in
+                guard let linksquaredID = linksquaredID, let uriScheme = uriScheme, success else {
+                    self.authenticated = false
+                    completion(false)
 
-                return
+                    return
+                }
+
+                Context.linksquaredID = linksquaredID
+
+                // Update context attributes if needed
+                if !self.shouldUpdateAttributes {
+                    Context.identifier = identifier
+                    Context.attributes = attributes
+                }
+
+                self.authenticated = true
+
+                self.checkIfURISchemeProperlySet(uriScheme: uriScheme)
+                self.handleURLIfNeeded()
+                self.getDataForDevice()
+                self.updateAttributesIfNeeded()
+
+                completion(true)
             }
-
-            Context.linksquaredID = linksquaredID
-            
-            // Attributes were not previously set from the SDK
-            if !self.shouldUpdateAttributes {
-                Context.identifier = identifier
-                Context.attributes = attributes
-            }
-
-            self.authenticated = true
-
-            self.checkIfURISchemeProperlySet(uriScheme: uriScheme)
-            self.handleURLIfNeeded()
-            self.getDataForDevice()
-            self.updateAttributesIfNeeded()
-
-            completion(true)
         }
     }
 
@@ -248,6 +255,13 @@ class LinksquaredManager {
             if value {
                 self.shouldUpdateAttributes = false
             }
+        }
+    }
+
+    private func handleUserAgent(completion: @escaping LinksquaredEmptyClosure) {
+        UserAgentHelper.getSafariUserAgent { userAgent in
+            Context.userAgent = userAgent
+            completion()
         }
     }
 
@@ -289,7 +303,10 @@ class LinksquaredManager {
         guard enabled, authenticated else {
             return
         }
-        apiService.payloadFor(appDetails: AppDetailsHelper.getAppDetails()) { payload in
+
+        self.apiService.payloadFor(appDetails: AppDetailsHelper.getAppDetails()) { payload, link in
+            self.eventsHandler.setLinkToNewFutureActions(link: link)
+
             self.handleReceivedAction(payload: payload)
         }
     }
@@ -304,8 +321,9 @@ class LinksquaredManager {
             return
         }
 
-        eventsHandler.setLink(link: url)
-        apiService.payloadFor(appDetails: AppDetailsHelper.getAppDetails(), url: url) { payload in
+        eventsHandler.setLinkToNewFutureActions(link: url)
+        self.apiService.payloadFor(appDetails: AppDetailsHelper.getAppDetails(), url: url) { payload, link in
+            self.eventsHandler.setLinkToNewFutureActions(link: link)
             self.handleReceivedAction(payload: payload)
         }
     }
