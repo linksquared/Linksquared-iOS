@@ -7,7 +7,6 @@
 
 ## Installation
 
-
 ### SPM
 
 Linksquared is available as a Swift Package Manager (SPM) package. You can add it to your project by following these steps:
@@ -16,15 +15,17 @@ Linksquared is available as a Swift Package Manager (SPM) package. You can add i
 2. Enter the repository URL: `https://github.com/your-repository/linksquared.git`.
 3. Select the version range that fits your project requirements.
 4. Click Next, then Finish.
-<br />
-<br />
+   <br />
+   <br />
 
 ### COCOAPODS
 
 To integrate the SDK using COCOCAPODS, add the pod to your Podfile
+
 ```
-pod 'linksquared'
+pod 'Linksquared'
 ```
+
 <br />
 <br />
 
@@ -42,13 +43,13 @@ import Linksquared
 
 ```swift
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) {
-        
+
         Linksquared.configure(APIKey: "your-api-key", delegate: yourDelegate)
-        
+
         # Optionally, you can adjust the debug level for logging:
-        
+
         Linksquared.setDebug(level: .info)
-        
+
         ... Your other code ...
     }
 ```
@@ -106,12 +107,12 @@ You can receive deep link events by conforming to the LinksquaredDelegate protoc
 ```swift
 
 class YourViewController: UIViewController, LinksquaredDelegate {
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         Linksquared.delegate = self
     }
-    
+
     // Implement the delegate method
     func linksquaredReceivedPayloadFromDeeplink(payload: [String: Any]) {
         // Handle the received payload here
@@ -119,7 +120,6 @@ class YourViewController: UIViewController, LinksquaredDelegate {
 }
 
 ```
-
 
 ### Generating Links
 
@@ -130,7 +130,6 @@ Linksquared.generateLink(title: "Link Title", subtitle: "Link Subtitle", imageUR
 }
 
 ```
-
 
 ## Further Assistance
 

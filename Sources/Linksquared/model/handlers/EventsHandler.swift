@@ -15,7 +15,7 @@ class EventsHandler {
 
     // Constants used internally
     private struct Constants {
-        static let firstBatchEventsSendingLeeway: Double = 30.0 // Seconds
+        static let firstBatchEventsSendingLeeway: Double = 5.0 // Seconds
         static let numberOfDaysForReactivation: Int = 7
     }
 
