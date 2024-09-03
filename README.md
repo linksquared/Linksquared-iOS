@@ -131,6 +131,10 @@ Linksquared.generateLink(title: "Link Title", subtitle: "Link Subtitle", imageUR
 
 ```
 
+## Demo project
+
+You can download and run a demo project [from here](https://github.com/linksquared/Linksquared-iOS-example-app).
+
 ## Further Assistance
 
 For further assistance and detailed documentation, refer to the Linksquared documentation available at https://linksquared.io/docs.
