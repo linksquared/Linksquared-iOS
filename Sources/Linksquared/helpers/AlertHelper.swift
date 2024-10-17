@@ -20,6 +20,7 @@ class AlertHelper {
     ///
     /// This method shows a default error alert with the message "Something went wrong, please try again!" and the title "Ooops!".
     static func showGenericError() {
+        dismissAllNotifications()
         displayMessageOnTopOfEverything("Something went wrong, please try again!", title: "Ooops!")
     }
 
