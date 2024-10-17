@@ -288,6 +288,7 @@ class LinksquaredManager {
     private func updateAttributesIfNeeded() {
         if !authenticated {
             shouldUpdateAttributes = true
+            return
         }
 
         apiService.updateAttributes { value in
