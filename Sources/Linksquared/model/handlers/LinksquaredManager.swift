@@ -89,6 +89,20 @@ class LinksquaredManager {
         }
     }
 
+    /// A property representing the push notification token.
+    ///
+    /// This token is used for identifying the device to receive push notifications.
+    var pushToken: String? {
+        set {
+            Context.pushToken = newValue
+            updateAttributesIfNeeded()
+        }
+        
+        get {
+            Context.pushToken
+        }
+    }
+
     // MARK: - Initialization
 
     /// Initializes the LinksquaredManager with the provided API key and delegate.
@@ -232,6 +246,31 @@ class LinksquaredManager {
             }
         }
     }
+    /// Retrieves notifications for a specified page.
+    ///
+    /// - Parameters:
+    ///   - page: The page number of notifications to retrieve. This allows for pagination of notifications.
+    ///   - completion: A closure that will be called with an array of notifications when the request completes.
+    func getNotifications(page: Int, completion: @escaping LinksquaredNotificationsClosure) {
+        apiService.notifications(page: page, completion: completion) // Delegates the call to the API service.
+    }
+
+    /// Retrieves the number of unread notifications.
+    ///
+    /// - Parameter completion: A closure that will be called with the count of unread notifications, or `nil` if the request fails.
+    func getNumberOfUnreadNotifications(completion: @escaping LinksquaredIntClosure) {
+        apiService.numberOfUnreadNotifications(completion: completion) // Delegates the call to the API service.
+    }
+
+    /// Marks a specific notification as read.
+    ///
+    /// - Parameters:
+    ///   - notificationID: The unique identifier of the notification to mark as read.
+    ///   - completion: A closure that will be called with a boolean indicating the success or failure of the operation.
+    func markNotificationAsRead(notificationID: Int, completion: @escaping LinksquaredBoolCompletion) {
+        apiService.markNotificationAsRead(notificationID: notificationID, completion: completion) // Delegates the call to the API service.
+    }
+    
 
     // MARK: - App Lifecycle
 
@@ -308,6 +347,7 @@ class LinksquaredManager {
             self.eventsHandler.setLinkToNewFutureActions(link: link)
 
             self.handleReceivedAction(payload: payload)
+            self.displayAutomaticNotificationsIfNeeded()
         }
     }
 
@@ -336,6 +376,49 @@ class LinksquaredManager {
         }
 
         handlePayloadsReceivedIfNeeded()
+    }
+
+    private func displayAutomaticNotificationsIfNeeded() {
+        apiService.notificationsToDisplayAutomatically { notifications in
+            guard let notifications = notifications else {
+                return
+            }
+
+            self.automaticallyDisplayNotifications(notifications: notifications)
+        }
+    }
+
+    private func automaticallyDisplayNotifications(notifications: [Notification]) {
+        let dispatchGroup = DispatchGroup()
+
+        // Process each notification one by one
+        DispatchQueue.global(qos: .background).async {
+            for notification in notifications {
+                dispatchGroup.enter()
+
+                // Display each notification sequentially
+                self.displayNotification(notification: notification) {
+                    dispatchGroup.leave() // Leave the group once the notification is displayed
+                }
+
+                dispatchGroup.wait()
+            }
+        }
+    }
+
+    private func displayNotification(notification: Notification, completion: @escaping LinksquaredEmptyClosure) {
+        // Ensure that the presentation happens on the main thread
+        DispatchQueue.main.async {
+            let vc = MessageDetailsViewController(nibName: "MessageDetailsViewController", bundle: nil)
+            vc.notification = notification
+            vc.manager = self
+
+            // Present the notification view controller on top
+            Presenter.presentOnTop(vc, animated: false) {
+                // Call the completion handler after the presentation is done
+                completion()
+            }
+        }
     }
 }
 

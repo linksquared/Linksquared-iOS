@@ -20,6 +20,12 @@ public typealias LinksquaredPayloadsClosure = (_ array: [[String: Any]]?) -> Voi
 /// A typealias for a closure returning a string.
 typealias LinksquaredAuthenticationClosure = (_ success: Bool, _ linksquaredID: String?, _ URIScheme: String?, _ identifier: String?, _ attributes: [String: Any]?) -> Void
 
+/// A typealias for a closure that returns an array of notifications.
+typealias LinksquaredNotificationsClosure = (_ notifications: [Notification]?) -> Void
+
+/// A typealias for a closure returning a dictionary.
+public typealias LinksquaredIntClosure = (_ value: Int?) -> Void
+
 /// A class responsible for handling API service calls.
 class APIService: BaseService {
 
@@ -27,8 +33,8 @@ class APIService: BaseService {
 
     private struct Constants {
         struct URLs {
-            static let endpoint = "https://sdk.sqd.link/api/v1/sdk"
-//            static let endpoint = "http://sdk.lvh.me:3000/api/v1/sdk"
+//            static let endpoint = "https://sdk.sqd.link/api/v1/sdk"
+            static let endpoint = "http://sdk.lvh.me:3000/api/v1/sdk"
 
             static let authenticate = "/authenticate"
             static let dataForDevice = "/data_for_device"
@@ -36,6 +42,11 @@ class APIService: BaseService {
             static let generateLink = "/create_link"
             static let event = "/event"
             static let attributes = "/visitor_attributes"
+
+            static let notifications = "/notifications_for_device"
+            static let numberOfUnreadNotifications = "/number_of_unread_notifications"
+            static let markNotificationAsRead = "/mark_notification_as_read"
+            static let notificationsToDisplayAutomatically = "/notifications_to_display_automatically"
         }
         struct Headers {
             static let apiKey = "PROJECT-KEY"
@@ -219,11 +230,16 @@ class APIService: BaseService {
         }
     }
 
+    /// Updates the attributes associated with the current session.
+    ///
+    /// - Parameter completion: A closure indicating the success or failure of the operation.
+
     func updateAttributes(completion: @escaping LinksquaredBoolCompletion) {
         var request = urlRequestWithAuthHeaders(path: Constants.URLs.attributes)
         request.httpMethod = "POST"
         let body = ["sdk_identifier": Context.identifier as Any,
-                    "sdk_attributes": Context.attributes as Any]
+                    "sdk_attributes": Context.attributes as Any,
+                    "push_token": Context.pushToken as Any]
         request.httpBody = body.dictToData()
 
         DebugLogger.shared.log(.info, "Set attributes")
@@ -239,7 +255,134 @@ class APIService: BaseService {
         }
     }
 
+    /// Retrieves notifications for a specified page.
+    ///
+    /// - Parameters:
+    ///   - page: The page number to fetch notifications for.
+    ///   - completion: A closure returning an array of notifications.
+
+    func notifications(page: Int, completion: @escaping LinksquaredNotificationsClosure) {
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.notifications)
+        request.httpMethod = "POST"
+        request.httpBody = ["page": page].dictToData()
+
+        DebugLogger.shared.log(.info, "Get messages")
+        makeRequest(URLRequest: request) { success, json in
+            guard let jsonDict = json, let jsonData = self.jsonDataFromDictionary(jsonDict), success else {
+                DebugLogger.shared.log(.info, "Get messages - Failed")
+                completion(nil)
+                return
+            }
+
+            do {
+                let dateFormatter = DateFormatter()
+                dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .formatted(dateFormatter)
+                let response = try decoder.decode(NotificationsResponse.self, from: jsonData)
+
+                DebugLogger.shared.log(.info, "Get messages - Successful")
+                completion(response.notifications)
+            } catch {
+                DebugLogger.shared.log(.info, "Get messages - Failed")
+                completion(nil)
+            }
+        }
+    }
+
+    /// Gets the number of unread notifications.
+    ///
+    /// - Parameter completion: A closure returning the number of unread notifications.
+    func numberOfUnreadNotifications(completion: @escaping LinksquaredIntClosure) {
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.numberOfUnreadNotifications)
+        request.httpMethod = "GET"
+
+        DebugLogger.shared.log(.info, "Get unread messages")
+        makeRequest(URLRequest: request) { success, json in
+            guard let jsonDict = json, let value = jsonDict["number_of_unread_notifications"] as? Int, success else {
+                DebugLogger.shared.log(.info, "Get unread messages - Failed")
+                completion(nil)
+                return
+            }
+
+            DebugLogger.shared.log(.info, "Get unread messages - Success")
+            completion(value)
+        }
+    }
+
+    // Marks a specified notification as read.
+    ///
+    /// - Parameters:
+    ///   - notificationID: The ID of the notification to mark as read.
+    ///   - completion: A closure indicating the success or failure of the operation.
+    func markNotificationAsRead(notificationID: Int, completion: @escaping LinksquaredBoolCompletion) {
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.markNotificationAsRead)
+        request.httpMethod = "POST"
+        request.httpBody = ["id": notificationID].dictToData()
+
+        DebugLogger.shared.log(.info, "Mark notification as read")
+        makeRequest(URLRequest: request) { success, json in
+            guard success else {
+                DebugLogger.shared.log(.info, "Mark notification as read - Failed")
+                completion(false)
+                return
+            }
+
+            DebugLogger.shared.log(.info, "Mark notification as read - Success")
+            completion(true)
+        }
+    }
+
+    // Retrieves notifications that should be displayed automatically.
+    ///
+    /// - Parameter completion: A closure returning an array of notifications that should be displayed automatically.
+    func notificationsToDisplayAutomatically(completion: @escaping LinksquaredNotificationsClosure) {
+        var request = urlRequestWithAuthHeaders(
+            path: Constants.URLs.notificationsToDisplayAutomatically)
+        request.httpMethod = "GET"
+
+        DebugLogger.shared.log(.info, "Notifications to display automatically")
+        makeRequest(URLRequest: request) { success, json in
+            guard let jsonDict = json, let jsonData = self.jsonDataFromDictionary(jsonDict), success else {
+                DebugLogger.shared.log(.info, "Notifications to display automatically - Failed")
+                completion(nil)
+                return
+            }
+
+            do {
+                let dateFormatter = DateFormatter()
+                dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .formatted(dateFormatter)
+                let response = try decoder.decode(NotificationsResponse.self, from: jsonData)
+
+                DebugLogger.shared.log(.info, "Notifications to display automatically - Successful")
+                completion(response.notifications)
+            } catch {
+                DebugLogger.shared.log(.info, "Notifications to display automatically - Failed")
+                completion(nil)
+            }
+        }
+    }
+
     // MARK: - Private Methods
+
+    private func jsonDataFromDictionary(_ dict: [String: Any]) -> Data? {
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: dict, options: [])
+            return jsonData
+        } catch {
+            print("Error serializing JSON: \(error)")
+            return nil
+        }
+    }
 
     /// Constructs a URLRequest with authentication headers.
     ///

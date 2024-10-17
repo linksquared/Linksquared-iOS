@@ -31,4 +31,7 @@ struct Context {
 
     /// The user agent string, used for identifying the client environment.
     static var userAgent: String?
+
+    /// A property representing the push notification token.
+    static var pushToken: String?
 }

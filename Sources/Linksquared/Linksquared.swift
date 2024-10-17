@@ -65,28 +65,42 @@ public class Linksquared {
         manager?.setEnabled(enabled)
     }
 
-    /// Sets the debug level for the SDK log messages.
-    /// - Parameter level: The log level to set.
-    /// Default is error.
-    public static func setDebug(level: LogLevel) {
-        DebugLogger.shared.logLevel = level
-    }
-
+    /// The identifier for the user.
+    ///
+    /// - This property allows getting and setting the user identifier.
+    /// - If set to a new value, it updates the `manager`'s identifier.
     public static var userIdentifier: String? {
         set {
-            manager?.identifier = newValue
+            manager?.identifier = newValue // Sets the new user identifier.
         }
         get {
-            manager?.identifier
+            manager?.identifier // Returns the current user identifier.
         }
     }
 
+    /// The attributes associated with the user.
+    ///
+    /// - This property allows getting and setting user attributes as a dictionary.
+    /// - If set to a new value, it updates the `manager`'s attributes.
     public static var userAttributes: [String: Any]? {
         set {
-            manager?.attributes = newValue
+            manager?.attributes = newValue // Sets the new user attributes.
         }
         get {
-            manager?.attributes
+            manager?.attributes // Returns the current user attributes.
+        }
+    }
+
+    /// The push token for the user.
+    ///
+    /// - This property allows getting and setting the push notification token.
+    /// - If set to a new value, it updates the `manager`'s push token.
+    public static var pushToken: String? {
+        set {
+            manager?.pushToken = newValue // Sets the new push token.
+        }
+        get {
+            manager?.pushToken // Returns the current push token.
         }
     }
 
@@ -197,5 +211,34 @@ extension Linksquared {
     public static func handleAppDelegate(open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
         // Handle URI
         return manager?.handleAppDelegate(open: url, options: options) ?? false
+    }
+}
+
+
+// MARK: Public messages
+
+extension Linksquared {
+    /// Displays the messages view controller modally.
+    ///
+    /// - This method initializes a `UINavigationController` without a navigation bar,
+    ///   sets up a `MessagesViewController`, and presents it on top of the current view hierarchy.
+    public static func displayMessagesViewController() {
+        let nav = UINavigationController() // Creates a new navigation controller.
+        nav.navigationBar.isHidden = true // Hides the navigation bar for the messages view.
+
+        let vc = MessagesViewController(nibName: "MessagesViewController", bundle: nil) // Initializes the messages view controller.
+        vc.manager = manager // Assigns the manager to the view controller for handling notifications.
+
+        nav.viewControllers = [vc] // Sets the messages view controller as the root of the navigation controller.
+
+        Presenter.presentOnTop(nav) // Presents the navigation controller on top of the current view.
+    }
+
+    /// Retrieves the number of unread messages asynchronously.
+    ///
+    /// - Parameter completion: A closure that is called with the number of unread notifications.
+    /// - The completion closure receives an optional integer value representing the count of unread notifications.
+    public static func numberOfUnreadMessages(completion: @escaping LinksquaredIntClosure) {
+        manager?.getNumberOfUnreadNotifications(completion: completion) // Calls the manager to fetch unread notifications.
     }
 }
