@@ -9,6 +9,18 @@ import UIKit
 /// A view controller for displaying a list of messages in a table view, with support for pull-to-refresh and pagination.
 class MessagesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UIScrollViewDelegate {
 
+    static func loadVCFromNib() -> MessagesViewController? {
+        var vc: MessagesViewController?
+
+#if SWIFT_PACKAGE
+        vc = MessagesViewController.init(nibName: "MessagesViewController", bundle: Bundle.module)
+#else
+        vc = MessagesViewController.init(nibName: "MessagesViewController", bundle: Bundle.framework)
+#endif
+
+        return vc
+    }
+
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!  // An activity indicator for loading state.
     @IBOutlet weak var tableView: UITableView!                     // The table view displaying the messages.
     @IBOutlet weak var titleLabel: UILabel!                        // The title label at the top of the screen.
@@ -133,10 +145,11 @@ class MessagesViewController: UIViewController, UITableViewDataSource, UITableVi
     ///
     /// - Parameter notification: The selected notification.
     private func goToMessage(notification: Notification) {
-        let vc = MessageDetailsViewController(nibName: "MessageDetailsViewController", bundle: nil)
-        vc.notification = notification
-        vc.manager = manager
-        navigationController?.pushViewController(vc, animated: true)
+        if let vc = MessageDetailsViewController.loadVCFromNib() {
+            vc.notification = notification
+            vc.manager = manager
+            navigationController?.pushViewController(vc, animated: true)
+        }
     }
 
     /// Fetches notifications from the manager.

@@ -233,12 +233,13 @@ extension Linksquared {
         let nav = UINavigationController() // Creates a new navigation controller.
         nav.navigationBar.isHidden = true // Hides the navigation bar for the messages view.
 
-        let vc = MessagesViewController(nibName: "MessagesViewController", bundle: nil) // Initializes the messages view controller.
-        vc.manager = manager // Assigns the manager to the view controller for handling notifications.
+        if let vc = MessagesViewController.loadVCFromNib()  { // Initializes the messages view controller.
+            vc.manager = manager // Assigns the manager to the view controller for handling notifications.
 
-        nav.viewControllers = [vc] // Sets the messages view controller as the root of the navigation controller.
+            nav.viewControllers = [vc] // Sets the messages view controller as the root of the navigation controller.
 
-        Presenter.presentOnTop(nav) // Presents the navigation controller on top of the current view.
+            Presenter.presentOnTop(nav) // Presents the navigation controller on top of the current view.
+        }
     }
 
     /// Retrieves the number of unread messages asynchronously.

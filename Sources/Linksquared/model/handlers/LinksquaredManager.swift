@@ -409,14 +409,15 @@ class LinksquaredManager {
     private func displayNotification(notification: Notification, completion: @escaping LinksquaredEmptyClosure) {
         // Ensure that the presentation happens on the main thread
         DispatchQueue.main.async {
-            let vc = MessageDetailsViewController(nibName: "MessageDetailsViewController", bundle: nil)
-            vc.notification = notification
-            vc.manager = self
+            if let vc = MessageDetailsViewController.loadVCFromNib() {
+                vc.notification = notification
+                vc.manager = self
 
-            // Present the notification view controller on top
-            Presenter.presentOnTop(vc, animated: false) {
-                // Call the completion handler after the presentation is done
-                completion()
+                // Present the notification view controller on top
+                Presenter.presentOnTop(vc, animated: false) {
+                    // Call the completion handler after the presentation is done
+                    completion()
+                }
             }
         }
     }

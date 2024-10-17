@@ -10,6 +10,18 @@ import WebKit
 /// A view controller that displays the details of a message using a web view.
 class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
 
+    static func loadVCFromNib() -> MessageDetailsViewController? {
+        var vc: MessageDetailsViewController?
+
+#if SWIFT_PACKAGE
+        vc = MessageDetailsViewController.init(nibName: "MessageDetailsViewController", bundle: Bundle.module)
+#else
+        vc = MessageDetailsViewController.init(nibName: "MessageDetailsViewController", bundle: Bundle.framework)
+#endif
+
+        return vc
+    }
+
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView! // Activity indicator to show loading state.
     @IBOutlet weak var webView: WKWebView!                        // Web view for displaying the message content.
     @IBOutlet weak var backButton: UIButton!                      // Back button for navigation.
