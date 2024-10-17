@@ -44,20 +44,20 @@ extension UIAlertController {
     /// This method creates a new `UIWindow` and sets it as the key window with a level above the main window.
     /// The alert controller is then presented on this new window's root view controller.
     func showOnANewWindow() {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let delegate = scene.delegate as? SceneDelegate else {
-            return
+        // Create a new window for the alert and set its root view controller.
+        xxx_window = UIWindow(frame: UIScreen.main.bounds)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            xxx_window = UIWindow(windowScene:scene)
         }
 
-        // Create a new window for the alert and set its root view controller.
-        xxx_window = UIWindow(windowScene: scene)
         xxx_window?.rootViewController = AlertContainerViewController()
 
         // Set the window level above the main window to ensure visibility.
-        if let topWindow = delegate.window {
+        if let topWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
             xxx_window?.windowLevel = topWindow.windowLevel + 1
-            xxx_window?.makeKeyAndVisible()
-            xxx_window?.rootViewController?.present(self, animated: true, completion: nil)
         }
+
+        xxx_window?.makeKeyAndVisible()
+        xxx_window?.rootViewController?.present(self, animated: true, completion: nil)
     }
 }
