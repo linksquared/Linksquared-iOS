@@ -104,6 +104,13 @@ public class Linksquared {
         }
     }
 
+    /// Sets the debug level for the SDK log messages.
+    /// - Parameter level: The log level to set.
+    /// Default is error.
+    public static func setDebug(level: LogLevel) {
+        DebugLogger.shared.logLevel = level
+    }
+
     /// Generates a link.
     ///
     /// - Parameters:
