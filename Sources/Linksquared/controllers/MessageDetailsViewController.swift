@@ -56,8 +56,16 @@ class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
         super.viewDidAppear(animated)
 
         // Load the notification's URL in the web view.
-        guard let url = notification?.accessURL else {
+        guard var urlString = notification?.accessURL?.absoluteString else {
             exitScreen()
+            return
+        }
+
+        if !urlString.hasPrefix("http") {
+            urlString = "https://" + urlString
+        }
+
+        guard let url = URL(string: urlString) else {
             return
         }
 

@@ -50,7 +50,12 @@ class MessagesViewController: UIViewController, UITableViewDataSource, UITableVi
         super.viewDidLoad()
 
         // Register the table view cell and set data source and delegate.
-        tableView.register(UINib(nibName: "MessageTableViewCell", bundle: nil), forCellReuseIdentifier: Constants.cellIdentifier)
+#if SWIFT_PACKAGE
+        tableView.register(UINib(nibName: "MessageTableViewCell", bundle: Bundle.module), forCellReuseIdentifier: Constants.cellIdentifier)
+#else
+        tableView.register(UINib(nibName: "MessageTableViewCell", bundle: Bundle.framework), forCellReuseIdentifier: Constants.cellIdentifier)
+#endif
+
         tableView.dataSource = self
         tableView.delegate = self
 
