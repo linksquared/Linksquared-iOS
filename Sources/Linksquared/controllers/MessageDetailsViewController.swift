@@ -29,6 +29,7 @@ class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
 
     var notification: Notification?  // The notification to display.
     var manager: LinksquaredManager? // The manager responsible for marking the notification as read.
+    var dismissalDelegate: DismissalDelegate?
 
     // MARK: - Lifecycle
 
@@ -74,6 +75,13 @@ class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
         webView.navigationDelegate = self
 
         markNotificationAsRead() // Mark the notification as read when the view appears.
+    }
+
+    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        super.dismiss(animated: flag, completion: completion)
+
+        // Notify the delegate when the view is dismissed
+        dismissalDelegate?.viewControllerDidDismiss()
     }
 
     // MARK: - WKNavigationDelegate Methods

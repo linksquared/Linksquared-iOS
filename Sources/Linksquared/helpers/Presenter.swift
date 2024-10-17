@@ -6,6 +6,21 @@
 
 import UIKit
 
+class DismissalDelegate: NSObject, UIAdaptivePresentationControllerDelegate {
+    static let shared = DismissalDelegate() // Singleton instance
+
+    var completion: LinksquaredEmptyClosure? // Store the completion closure
+
+    // This method will be called when the presented view controller is dismissed
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        completion?() // Call the completion closure if it exists
+    }
+
+    func viewControllerDidDismiss() {
+        completion?()
+    }
+}
+
 class Presenter {
 
     /// Presents the given view controller on top of everything else in the app.

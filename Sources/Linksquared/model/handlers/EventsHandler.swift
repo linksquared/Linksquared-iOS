@@ -8,7 +8,7 @@ import UIKit
 
 // Closure type definitions for event handling
 typealias LinksquaredChangeEventClosure = (_ oldEvent: Event) -> Event
-typealias LinksquaredEmptyClosure = () -> Void
+public typealias LinksquaredEmptyClosure = () -> Void
 
 /// Manages event handling and dispatching for the application.
 class EventsHandler {

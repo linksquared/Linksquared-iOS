@@ -229,14 +229,17 @@ extension Linksquared {
     ///
     /// - This method initializes a `UINavigationController` without a navigation bar,
     ///   sets up a `MessagesViewController`, and presents it on top of the current view hierarchy.
-    public static func displayMessagesViewController() {
+    public static func displayMessagesViewController(completion: LinksquaredEmptyClosure?) {
         let nav = UINavigationController() // Creates a new navigation controller.
         nav.navigationBar.isHidden = true // Hides the navigation bar for the messages view.
 
         if let vc = MessagesViewController.loadVCFromNib()  { // Initializes the messages view controller.
             vc.manager = manager // Assigns the manager to the view controller for handling notifications.
+            vc.dismissalDelegate = DismissalDelegate.shared
 
             nav.viewControllers = [vc] // Sets the messages view controller as the root of the navigation controller.
+            nav.presentationController?.delegate = DismissalDelegate.shared
+            DismissalDelegate.shared.completion = completion
 
             Presenter.presentOnTop(nav) // Presents the navigation controller on top of the current view.
         }

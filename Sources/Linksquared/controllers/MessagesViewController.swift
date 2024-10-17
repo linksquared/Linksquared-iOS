@@ -31,6 +31,7 @@ class MessagesViewController: UIViewController, UITableViewDataSource, UITableVi
     }
 
     var manager: LinksquaredManager?  // The manager responsible for fetching notifications.
+    var dismissalDelegate: DismissalDelegate?
 
     private var notifications = [Notification]() {  // Array of notifications to be displayed.
         didSet {
@@ -67,6 +68,17 @@ class MessagesViewController: UIViewController, UITableViewDataSource, UITableVi
 
         // Refresh notifications when the view appears.
         refreshNotifications()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+    }
+
+    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        super.dismiss(animated: flag, completion: completion)
+
+        // Notify the delegate when the view is dismissed
+        dismissalDelegate?.viewControllerDidDismiss()
     }
 
     // MARK: - Setup Pull-to-Refresh
@@ -153,6 +165,7 @@ class MessagesViewController: UIViewController, UITableViewDataSource, UITableVi
         if let vc = MessageDetailsViewController.loadVCFromNib() {
             vc.notification = notification
             vc.manager = manager
+            vc.dismissalDelegate = dismissalDelegate
             navigationController?.pushViewController(vc, animated: true)
         }
     }
