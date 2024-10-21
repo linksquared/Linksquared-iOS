@@ -8,7 +8,7 @@ import UIKit
 import WebKit
 
 /// A view controller that displays the details of a message using a web view.
-class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
+class MessageDetailsViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
 
     static func loadVCFromNib() -> MessageDetailsViewController? {
         var vc: MessageDetailsViewController?
@@ -73,6 +73,7 @@ class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
         let request = URLRequest(url: url)
         webView.load(request)
         webView.navigationDelegate = self
+        webView.uiDelegate = self
 
         markNotificationAsRead() // Mark the notification as read when the view appears.
     }
@@ -100,6 +101,19 @@ class MessageDetailsViewController: UIViewController, WKNavigationDelegate {
         // Called when the web view fails to load content.
         stopLoading()
         print("Failed to load page: \(error.localizedDescription)")
+    }
+
+    // MARK: - Navigation UI delegate
+
+    func webView(_ webView: WKWebView,
+                 createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction,
+                 windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
+            UIApplication.shared.openURL(url)
+        }
+        
+        return nil
     }
 
     // MARK: - Actions
