@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'linksquared'
-  s.version      = '1.1.13'
+  s.version      = '1.1.14'
   s.summary      = 'Linksquared is a powerful SDK that enables deep linking and universal linking within your iOS applications.'
   s.homepage     = 'https://linksquared.io'
   s.license      = { :type => 'MIT', :file => 'LICENSE' }

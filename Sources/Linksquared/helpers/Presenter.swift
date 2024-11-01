@@ -23,6 +23,26 @@ class DismissalDelegate: NSObject, UIAdaptivePresentationControllerDelegate {
 
 class Presenter {
 
+    /// Retrieves all currently presented view controllers of a specific type.
+    /// - Parameter type: The class type of the view controllers to search for.
+    /// - Returns: An array of view controllers of the specified type.
+    static func getPresentedViewControllers<T: UIViewController>(ofType type: T.Type) -> [T] {
+        var matchingViewControllers = [T]()
+
+        // Start from the top view controller
+        var viewController = getTopViewController()
+
+        // Traverse all presented view controllers and filter by the specified type
+        while let presentedVC = viewController?.presentedViewController {
+            if let matchingVC = presentedVC as? T {
+                matchingViewControllers.append(matchingVC)
+            }
+            viewController = presentedVC
+        }
+
+        return matchingViewControllers
+    }
+
     /// Presents the given view controller on top of everything else in the app.
     /// - Parameters:
     ///   - viewController: The view controller to present.

@@ -103,9 +103,6 @@ class LinksquaredManager {
         }
     }
 
-    // Marks if its the first open for the app
-    private var firstOpen = true
-
     // MARK: - Initialization
 
     /// Initializes the LinksquaredManager with the provided API key and delegate.
@@ -279,12 +276,6 @@ class LinksquaredManager {
 
     /// Called when the application becomes active.
     @objc func applicationDidBecomeActive() {
-        // Skip this as the user is not yet authenticated, might lead to double display of the notifications
-        if firstOpen {
-            firstOpen = false
-            return
-        }
-        
         getDataForDevice()
     }
 
@@ -419,6 +410,14 @@ class LinksquaredManager {
     private func displayNotification(notification: Notification, completion: @escaping LinksquaredEmptyClosure) {
         // Ensure that the presentation happens on the main thread
         DispatchQueue.main.async {
+            let presentedVCs = Presenter.getPresentedViewControllers(ofType: MessageDetailsViewController.self)
+            presentedVCs.forEach { presentedVC in
+                if presentedVC.notification?.id == notification.id {
+                    // Already preseted, return
+                    return
+                }
+            }
+
             if let vc = MessageDetailsViewController.loadVCFromNib() {
                 vc.notification = notification
                 vc.manager = self
