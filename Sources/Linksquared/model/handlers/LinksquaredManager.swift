@@ -103,6 +103,9 @@ class LinksquaredManager {
         }
     }
 
+    private let notificationsDisplayDispatchGroup = DispatchGroup()
+    private var displayedNotificationsIds = [Int]()
+
     // MARK: - Initialization
 
     /// Initializes the LinksquaredManager with the provided API key and delegate.
@@ -390,19 +393,17 @@ class LinksquaredManager {
     }
 
     private func automaticallyDisplayNotifications(notifications: [Notification]) {
-        let dispatchGroup = DispatchGroup()
-
         // Process each notification one by one
         DispatchQueue.global(qos: .background).async {
             for notification in notifications {
-                dispatchGroup.enter()
+                self.notificationsDisplayDispatchGroup.enter()
 
                 // Display each notification sequentially
                 self.displayNotification(notification: notification) {
-                    dispatchGroup.leave() // Leave the group once the notification is displayed
+                    self.notificationsDisplayDispatchGroup.leave() // Leave the group once the notification is displayed
                 }
 
-                dispatchGroup.wait()
+                self.notificationsDisplayDispatchGroup.wait()
             }
         }
     }
@@ -410,12 +411,10 @@ class LinksquaredManager {
     private func displayNotification(notification: Notification, completion: @escaping LinksquaredEmptyClosure) {
         // Ensure that the presentation happens on the main thread
         DispatchQueue.main.async {
-            let presentedVCs = Presenter.getPresentedViewControllers(ofType: MessageDetailsViewController.self)
-            presentedVCs.forEach { presentedVC in
-                if presentedVC.notification?.id == notification.id {
-                    // Already preseted, return
-                    return
-                }
+            if (self.displayedNotificationsIds.first(where: {$0 == notification.id}) != nil) {
+                // Already displayed
+                completion()
+                return
             }
 
             if let vc = MessageDetailsViewController.loadVCFromNib() {
@@ -424,6 +423,7 @@ class LinksquaredManager {
 
                 // Present the notification view controller on top
                 Presenter.presentOnTop(vc, animated: false) {
+                    self.displayedNotificationsIds.append(notification.id)
                     // Call the completion handler after the presentation is done
                     completion()
                 }
